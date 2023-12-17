@@ -1,0 +1,15 @@
+[submodule "ShroomCity.Services"]
+	path = ShroomCity.Services
+	url = https://github.com/hallgrimurt21/ShroomCity.Services
+[submodule "ShroomCity.API"]
+	path = ShroomCity.API
+	url = https://github.com/hallgrimurt21/ShroomCity.API
+[submodule "ShroomCity.Utilities"]
+	path = ShroomCity.Utilities
+	url = https://github.com/hallgrimurt21/ShroomCity.Utilities
+[submodule "ShroomCity.Models"]
+	path = ShroomCity.Models
+	url = https://github.com/hallgrimurt21/ShroomCity.Models
+[submodule "ShroomCity.Repositories"]
+	path = ShroomCity.Repositories
+	url = https://github.com/hallgrimurt21/ShroomCity.Repositories
