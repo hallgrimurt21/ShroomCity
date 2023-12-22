@@ -19,6 +19,8 @@ x64/
 .tools/
 src/Templates/**/ModifiedTemplates/
 .packages/
+**/bin/
+**/obj/
 
 # Per-user project properties
 launchSettings.json
