@@ -24,6 +24,7 @@ src/Templates/**/ModifiedTemplates/
 
 # Per-user project properties
 launchSettings.json
+.vscode/
 
 *_i.c
 *_p.c
