@@ -6,10 +6,13 @@ public class AccountRepositoryTests
     public async Task RegisterShouldCreateNewUserWhenInputModelIsValid()
     {
         // Arrange
-        var mockContext = new Mock<ShroomCityDbContext>();
+        var options = new DbContextOptionsBuilder<ShroomCityDbContext>()
+            .UseInMemoryDatabase(databaseName: "TestDatabase")
+            .Options;
+
+        using var context = new ShroomCityDbContext(options);
+
         var mockTokenRepository = new Mock<ITokenRepository>();
-        var mockDbSetUsers = new Mock<DbSet<User>>();
-        var mockDbSetRoles = new Mock<DbSet<Role>>();
         var inputModel = new RegisterInputModel
         {
             FullName = "Test User",
@@ -19,17 +22,11 @@ public class AccountRepositoryTests
             PasswordConfirmation = "TestPassword"
         };
         var analystRole = new Role { Name = RoleConstants.Analyst, Permissions = new List<Permission>() };
-        var roles = new List<Role> { analystRole }.AsQueryable();
+        context.Roles.Add(analystRole);
+        await context.SaveChangesAsync();
 
-        mockDbSetRoles.As<IQueryable<Role>>().Setup(m => m.Provider).Returns(roles.Provider);
-        mockDbSetRoles.As<IQueryable<Role>>().Setup(m => m.Expression).Returns(roles.Expression);
-        mockDbSetRoles.As<IQueryable<Role>>().Setup(m => m.ElementType).Returns(roles.ElementType);
-        mockDbSetRoles.As<IQueryable<Role>>().Setup(m => m.GetEnumerator()).Returns(roles.GetEnumerator());
-
-        mockContext.Setup(c => c.Users).Returns(mockDbSetUsers.Object);
-        mockContext.Setup(c => c.Roles).Returns(mockDbSetRoles.Object);
         mockTokenRepository.Setup(x => x.CreateToken()).ReturnsAsync(1);
-        var accountRepository = new AccountRepository(mockTokenRepository.Object, mockContext.Object);
+        var accountRepository = new AccountRepository(mockTokenRepository.Object, context);
 
         // Act
         var result = await accountRepository.Register(inputModel);
@@ -39,55 +36,101 @@ public class AccountRepositoryTests
         Assert.Equal(inputModel.FullName, result.Name);
         Assert.Equal(inputModel.EmailAddress, result.EmailAddress);
         Assert.Equal(1, result.TokenId);
-        mockDbSetUsers.Verify(u => u.Add(It.IsAny<User>()), Times.Once);
-        mockContext.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        Assert.Single(context.Users);
+        var createdUser = await context.Users.FirstOrDefaultAsync(u => u.EmailAddress == inputModel.EmailAddress);
+        Assert.NotNull(createdUser);
+        Assert.Equal(analystRole, createdUser.Role);
     }
-    // [Fact]
-    // public async Task RegisterShouldReturnNullWhenUserAlreadyExists()
-    // {
-    //     // Arrange
-    //     var mockContext = new Mock<ShroomCityDbContext>();
-    //     var mockTokenRepository = new Mock<ITokenRepository>();
-    //     var mockDbSetUsers = new Mock<DbSet<User>>();
-    //     var inputModel = new RegisterInputModel
-    //     {
-    //         FullName = "Test User",
-    //         EmailAddress = "test@example.com",
-    //         Password = "TestPassword",
-    //         Bio = "Test Bio",
-    //         PasswordConfirmation = "TestPassword"
-    //     };
-    //     var existingUser = new User { EmailAddress = "test@example.com" };
-    //     mockDbSetUsers.Setup(u => u.FirstOrDefaultAsync(It.IsAny<Expression<Func<User, bool>>>(), It.IsAny<CancellationToken>())).ReturnsAsync(existingUser);
-    //     mockContext.Setup(c => c.Users).Returns(mockDbSetUsers.Object);
-    //     var accountRepository = new AccountRepository(mockContext.Object, mockTokenRepository.Object);
 
-    //     // Act
-    //     var result = await accountRepository.Register(inputModel);
+    [Fact]
+    public async Task RegisterShouldReturnNullWhenEmailAlreadyExists()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<ShroomCityDbContext>()
+            .UseInMemoryDatabase(databaseName: "TestDatabaseRegisterEmailExists")
+            .Options;
+        using var context = new ShroomCityDbContext(options);
+        var mockTokenRepository = new Mock<ITokenRepository>();
+        var inputModel = new RegisterInputModel
+        {
+            FullName = "Test User",
+            EmailAddress = "test@example.com",
+            Password = "TestPassword",
+            Bio = "Test Bio",
+            PasswordConfirmation = "TestPassword"
+        };
+        var user = new User
+        {
+            EmailAddress = inputModel.EmailAddress,
+            HashedPassword = inputModel.Password,
+            Name = "Test User",
+            Role = new Role { Name = RoleConstants.Analyst, Permissions = new List<Permission>() }
+        };
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+        mockTokenRepository.Setup(x => x.CreateToken()).ReturnsAsync(1);
+        var accountRepository = new AccountRepository(mockTokenRepository.Object, context);
 
-    //     // Assert
-    //     Assert.Null(result);
-    // }
-    // [Fact]
-    // public async Task SignInShouldReturnNullWhenUserDoesNotExist()
-    // {
-    //     // Arrange
-    //     var mockContext = new Mock<ShroomCityDbContext>();
-    //     var mockTokenRepository = new Mock<ITokenRepository>();
-    //     var mockDbSetUsers = new Mock<DbSet<User>>();
-    //     var inputModel = new LoginInputModel
-    //     {
-    //         EmailAddress = "test@example.com",
-    //         Password = "TestPassword"
-    //     };
-    //     mockDbSetUsers.Setup(u => u.FirstOrDefaultAsync(It.IsAny<Expression<Func<User, bool>>>(), It.IsAny<CancellationToken>())).ReturnsAsync((User)null);
-    //     mockContext.Setup(c => c.Users).Returns(mockDbSetUsers.Object);
-    //     var accountRepository = new AccountRepository(mockContext.Object, mockTokenRepository.Object);
+        // Act
+        var result = await accountRepository.Register(inputModel);
 
-    //     // Act
-    //     var result = await accountRepository.SignIn(inputModel);
+        // Assert
+        Assert.Null(result);
+    }
 
-    //     // Assert
-    //     Assert.Null(result);
-    // }
+    [Fact]
+    public async Task SignInShouldReturnUserWhenCredentialsAreValid()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<ShroomCityDbContext>()
+            .UseInMemoryDatabase(databaseName: "TestDatabaseSignIn")
+            .Options;
+        using var context = new ShroomCityDbContext(options);
+        var mockTokenRepository = new Mock<ITokenRepository>();
+        var inputModel = new LoginInputModel
+        {
+            EmailAddress = "test@example.com",
+            Password = "TestPassword",
+        };
+        var user = new User
+        {
+            EmailAddress = inputModel.EmailAddress,
+            HashedPassword = inputModel.Password,
+            Name = "Test User",
+            Role = new Role { Name = RoleConstants.Analyst, Permissions = new List<Permission>() }
+
+        };
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+        mockTokenRepository.Setup(x => x.CreateToken()).ReturnsAsync(1);
+        var accountRepository = new AccountRepository(mockTokenRepository.Object, context);
+
+        // Act
+        var result = await accountRepository.SignIn(inputModel);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(inputModel.EmailAddress, result.EmailAddress);
+    }
+
+    [Fact]
+    public async Task SignInShouldReturnNullWhenUserDoesNotExist()
+    {
+        // Arrange
+        var options = new DbContextOptionsBuilder<ShroomCityDbContext>()
+            .UseInMemoryDatabase(databaseName: "TestDatabaseSignInUserDoesNotExist")
+            .Options;
+        using var context = new ShroomCityDbContext(options);
+        var mockTokenRepository = new Mock<ITokenRepository>();
+        var inputModel = new LoginInputModel
+        {
+            EmailAddress = "nonexistent@example.com",
+            Password = "NonExistentPassword",
+        };
+        var accountRepository = new AccountRepository(mockTokenRepository.Object, context);
+        // Act
+        var result = await accountRepository.SignIn(inputModel);
+        // Assert
+        Assert.Null(result);
+    }
 }
