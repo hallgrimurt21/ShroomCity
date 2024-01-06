@@ -1,0 +1,11 @@
+global using Xunit;
+global using Moq;
+global using System.Linq.Expressions;
+global using ShroomCity.Models.Dtos;
+global using ShroomCity.Models.InputModels;
+global using ShroomCity.Models.Entities;
+global using ShroomCity.Models.Constants;
+global using ShroomCity.Repositories.Interfaces;
+global using ShroomCity.Repositories.DbContext;
+global using ShroomCity.Services.Interfaces;
+global using Microsoft.EntityFrameworkCore;
