@@ -8,3 +8,6 @@ Admin user:
 
 admin@shroomcity.com
 admin1
+
+Github: 
+https://github.com/hallgrimurt21/ShroomCity
