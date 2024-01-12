@@ -13,8 +13,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShroomCity.Services", "Shro
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShroomCity.Utilities", "ShroomCity.Utilities\ShroomCity.Utilities.csproj", "{ECF8090F-408F-4F3D-9E73-E048E1D186E1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShroomCity.Repositories.Tests", "ShroomCity.Repositories.Tests\ShroomCity.Repositories.Tests.csproj", "{482E095E-BF1D-4719-93A5-9F42D3978701}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
